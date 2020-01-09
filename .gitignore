@@ -1,3 +1,11 @@
 build-batchccc-*/
 icu*/
 *.user
+
+
+/src/testdata/*.cpp
+/src/testdata/*.h
+/src/testdata/*.txt
+/src/testdata/*.bk*
+
+
