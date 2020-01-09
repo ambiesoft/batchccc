@@ -28,7 +28,7 @@ void TaskConvert::runstuff(const QString& dir)
         return;
 
     {
-        QDirIterator itDir(args_.dir, QDir::NoDotAndDotDot|QDir::Dirs);
+        QDirIterator itDir(dir, QDir::NoDotAndDotDot|QDir::Dirs);
         while(itDir.hasNext())
         {
             runstuff(itDir.next());
@@ -93,7 +93,7 @@ void TaskConvert::runFile(const QFileInfo& fileInfo)
     try
     {
         QFile file(fileInfo.absoluteFilePath());
-        if (Q_UNLIKELY(!file.open(QFile::ReadOnly| bbb())))
+        if (Q_UNLIKELY(!file.open(QFile::ReadOnly)))
             throw file.errorString();
 
 
@@ -120,14 +120,21 @@ void TaskConvert::runFile(const QFileInfo& fileInfo)
     try {
 
         QFile newFile(newFilePath);
-        if(!newFile.open(QFile::WriteOnly | QFile::NewOnly))
+        if(!newFile.open(QFile::WriteOnly | QFile::NewOnly)) // | bbb()))
             throw newFile.errorString();
 
         if(true)
         {
             unsigned char bom[] = {0xEF, 0xBB, 0xBF};
-            if(sizeof(bom) != newFile.write((char*)bom, sizeof(bom)))
-                throw newFile.errorString();
+            if(buffsize >= 3 && memcmp(p.get(), bom, sizeof(bom))==0)
+            {
+                // already has bom
+            }
+            else
+            {
+                if(sizeof(bom) != newFile.write((char*)bom, sizeof(bom)))
+                    throw newFile.errorString();
+            }
 
         }
         if(buffsize != newFile.write(p.get(), buffsize))
