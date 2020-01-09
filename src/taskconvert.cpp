@@ -2,6 +2,7 @@
 
 #include <QRegularExpression>
 #include <QDirIterator>
+#include <QDebug>
 
 #include "../../lsMisc/stdQt/stdQt.h"
 
@@ -44,7 +45,8 @@ void TaskConvert::runstuff(const QString& dir)
             itFile.next();
             Q_ASSERT(itFile.fileInfo().isFile());
 
-            QRegularExpression regex("\\.cpp$", QRegularExpression::CaseInsensitiveOption);
+            QRegularExpression regex("(\\.cpp$)|(\\.h$)", QRegularExpression::CaseInsensitiveOption);
+            qDebug() << itFile.fileName() << __FUNCTION__;
             QRegularExpressionMatch match = regex.match(itFile.fileName());
             if(match.hasMatch())
             {
@@ -60,24 +62,24 @@ void TaskConvert::runstuff(const QString& dir)
 }
 
 namespace {
-    QIODevice::OpenModeFlag bbb()
-    {
-        // if 0 returns, text is saved LF
-        // if TEXT return text is saved CRLF
-        return QFile::Text;
-    }
+QIODevice::OpenModeFlag bbb()
+{
+    // if 0 returns, text is saved LF
+    // if TEXT return text is saved CRLF
+    return QFile::Text;
+}
 }
 
 bool getByteArrayFromFile(QFile& file,
-                                      QByteArray& qba,
-                                      qint64 maxsize)
+                          QByteArray& qba,
+                          qint64 maxsize)
 {
     qint64 fileSize = file.size();
     if(maxsize != -1 && fileSize > maxsize)
     {
-//        QMessageBox::warning(this,
-//                             qAppName(),
-//                             tr("File size is too large."));
+        //        QMessageBox::warning(this,
+        //                             qAppName(),
+        //                             tr("File size is too large."));
         return false;
     }
 
@@ -86,39 +88,78 @@ bool getByteArrayFromFile(QFile& file,
 }
 void TaskConvert::runFile(const QFileInfo& fileInfo)
 {
-    QFile file(fileInfo.absoluteFilePath());
-    if (Q_UNLIKELY(!file.open(QFile::ReadOnly| bbb())))
-    {
-        Alert(nullptr,
-              tr("Cannot read file %1:\n%2.")
-              .arg(QDir::toNativeSeparators(fileInfo.absoluteFilePath()), file.errorString()));
-        return;
-    }
-
-    QByteArray allBytes;
-    if(!getByteArrayFromFile(file, allBytes, 10 * 1024 * 1024))
-        return;
-
-    string charcode = GetDetectedCodecICU(allBytes);
-
     int32_t buffsize=0;
-    unique_ptr<char[]> p(ConvertToUTF8(charcode, allBytes, &buffsize));
-    if(!p)
+    unique_ptr<char[]> p;
+    try
     {
-        Alert(nullptr,"fail");
+        QFile file(fileInfo.absoluteFilePath());
+        if (Q_UNLIKELY(!file.open(QFile::ReadOnly| bbb())))
+            throw file.errorString();
+
+
+        QByteArray allBytes;
+        if(!getByteArrayFromFile(file, allBytes, 10 * 1024 * 1024))
+            throw tr("File size");
+
+        string charcode = GetDetectedCodecICU(allBytes);
+
+        p = (ConvertToUTF8(charcode, allBytes, &buffsize));
+        if(!p)
+            throw tr("Failed to convert");
+    }
+    catch (QString& error)
+    {
+        emit fileFailed(loopid(),
+                        fileInfo,
+                        error);
         return;
+
     }
 
     QString newFilePath = fileInfo.absoluteFilePath() + ".new";
-    QFile newFile(newFilePath);
-    if(!newFile.open(QFile::WriteOnly | QFile::NewOnly))
+    try {
+
+        QFile newFile(newFilePath);
+        if(!newFile.open(QFile::WriteOnly | QFile::NewOnly))
+            throw newFile.errorString();
+
+        if(true)
+        {
+            unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+            if(sizeof(bom) != newFile.write((char*)bom, sizeof(bom)))
+                throw newFile.errorString();
+
+        }
+        if(buffsize != newFile.write(p.get(), buffsize))
+            throw newFile.errorString();
+    }
+    catch (QString& error)
     {
-        Alert(nullptr,"ng");
+        emit fileFailed(loopid(),
+                        newFilePath,
+                        error);
         return;
     }
-    if(buffsize != newFile.write(p.get(), buffsize))
+
+    bool backup=false;
+    QString backFilePath = backup ?
+                fileInfo.absoluteFilePath() + ".bk" + thistick() :
+                QString();
+
+    QString error;
+    if(!Move3Files(fileInfo.absoluteFilePath(),
+               newFilePath,
+               backFilePath,
+               &error))
     {
-        Alert(nullptr,"ng");
+        emit fileFailed(loopid(),
+                        fileInfo.absoluteFilePath(),
+                        error);
         return;
     }
+
+    emit fileProcessed(loopid(),
+                       fileInfo,
+                       false,
+                       true);
 }
