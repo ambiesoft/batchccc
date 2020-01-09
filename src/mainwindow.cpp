@@ -12,6 +12,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+#ifndef NDEBUG
+    ui->lineInput->setText(QFileInfo("../src/testdata").absoluteFilePath());
+#endif
 }
 
 MainWindow::~MainWindow()
