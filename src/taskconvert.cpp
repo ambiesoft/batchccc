@@ -101,4 +101,24 @@ void TaskConvert::runFile(const QFileInfo& fileInfo)
 
     string charcode = GetDetectedCodecICU(allBytes);
 
+    int32_t buffsize=0;
+    unique_ptr<char[]> p(ConvertToUTF8(charcode, allBytes, &buffsize));
+    if(!p)
+    {
+        Alert(nullptr,"fail");
+        return;
+    }
+
+    QString newFilePath = fileInfo.absoluteFilePath() + ".new";
+    QFile newFile(newFilePath);
+    if(!newFile.open(QFile::WriteOnly | QFile::NewOnly))
+    {
+        Alert(nullptr,"ng");
+        return;
+    }
+    if(buffsize != newFile.write(p.get(), buffsize))
+    {
+        Alert(nullptr,"ng");
+        return;
+    }
 }

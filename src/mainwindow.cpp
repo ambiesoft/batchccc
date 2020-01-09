@@ -2,6 +2,8 @@
 #include <QThreadPool>
 
 #include "global.h"
+#include "helper.h"
+
 #include "taskconvert.h"
 
 #include "mainwindow.h"
@@ -14,6 +16,22 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
 #ifndef NDEBUG
+    QString str;
+    char* p = ConvertToUTF8_obsolete("euc-jp");
+    str = QString::fromUtf8(p);
+    ui->editLog->setPlainText(str);
+    delete[] p;
+
+
+    const char src[]     = "\xC6\xFC\xCB\xDC"; // "日本"のeuc-jp表現
+      QByteArray ar(src, sizeof(src)-1);
+//      unsigned char utf8[] = {0xE6,0x97,0xA5,0xE6,0x9C,0xAC,0x0};
+//      QByteArray ar((char*)utf8, sizeof(utf8));
+    int32_t buffsize=0;
+    auto pp = ConvertToUTF8("euc-jp", ar, &buffsize);
+    str= QString::fromUtf8(pp.get(), buffsize);
+    ui->editLog->setPlainText(str);
+
     ui->lineInput->setText(QFileInfo("../src/testdata").absoluteFilePath());
 #endif
 }
