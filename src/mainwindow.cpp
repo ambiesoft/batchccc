@@ -1,5 +1,7 @@
 #include <QFileDialog>
 #include <QThreadPool>
+#include <QDebug>
+#include <QComboBox>
 
 #include "global.h"
 #include "helper.h"
@@ -36,10 +38,52 @@ MainWindow::MainWindow(IniSettings& settings) :
     str= QString::fromUtf8(pp.get(), buffsize);
     ui->editLog->setPlainText(str);
 
-    ui->lineInput->setText(QFileInfo("../src/testdata").absoluteFilePath());
+    // ui->lineInput->setText(QFileInfo("../src/testdata").absoluteFilePath());
 #endif
 
+    // Toolbar
+    // ComboBox
+    cmbFind_ = new QComboBox(ui->mainToolBar);
+    cmbFind_->setMinimumWidth(100);
+    cmbFind_->setMaximumWidth(100);
+    cmbFind_->setEditable(true);
+    // QStringList findtexts = settings_.valueStringList(KEY_COMBO_FINDTEXTS);
+    // cmbFind_->addItems(findtexts);
+    cmbFind_->setEditText("");
+//    connect(cmbFind_, &FindComboBox::on_EnterPressed,
+//            this, &MainWindow::OnFindComboEnterPressed);
+    ui->mainToolBar->insertWidget(ui->placeHolder_ComboPath, cmbFind_);
+    ui->mainToolBar->removeAction(ui->placeHolder_ComboPath);
 
+
+    // Prepare treeFolder
+    // QString sPath = "F:/";
+    // tree view
+    dirModel_ = new QFileSystemModel(this);
+    ui->treeFolder->setModel(dirModel_);
+    // first column is the name
+    for (int i = 1; i < ui->treeFolder->header()->length(); ++i)
+        ui->treeFolder->hideColumn(i);
+
+    dirModel_->setFilter(QDir::NoDotAndDotDot | QDir::AllDirs | QDir::Drives);
+    QString sPath;
+#ifndef NDEBUG
+    sPath = QFileInfo("../src/testdata").absoluteFilePath();
+#endif
+    dirModel_->setRootPath(sPath);
+    ui->treeFolder->expand(dirModel_->index(sPath));
+
+    // ui->treeFolder->setRootIndex(dirModel_->setRootPath(sPath));
+
+
+    // file view
+    fileModel_ = new QFileSystemModel(this);
+    ui->treeFile->setModel(fileModel_);
+    fileModel_->setFilter(QDir::NoDotAndDotDot | QDir::Files);
+    fileModel_->setRootPath(sPath);
+    ui->treeFile->setRootIndex(fileModel_->setRootPath(sPath));
+
+    // Ini
     restoreGeometry(settings.value(KEY_GEOMETRY).toByteArray());
 
     if(!restoreState(settings.value(KEY_WINDOWSTATE).toByteArray()))
@@ -61,7 +105,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     settings_.setValue(KEY_WINDOWSTATE, saveState());
 
     settings_.sync();
-    __super::closeEvent(event);
+    QMainWindow::closeEvent(event);
 }
 
 MainWindow::~MainWindow()
@@ -69,21 +113,21 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_btnBrowseInput_clicked()
-{
-    QString dir = QFileDialog::getExistingDirectory(this,
-                                      tr("Choose Input Directory"));
+//void MainWindow::on_btnBrowseInput_clicked()
+//{
+//    QString dir = QFileDialog::getExistingDirectory(this,
+//                                      tr("Choose Input Directory"));
 
-    ui->lineInput->setText(dir);
-}
+//    ui->lineInput->setText(dir);
+//}
 
-void MainWindow::on_btnBrowseOutput_clicked()
-{
-    QString dir = QFileDialog::getExistingDirectory(this,
-                                      tr("Choose Output Directory"));
+//void MainWindow::on_btnBrowseOutput_clicked()
+//{
+//    QString dir = QFileDialog::getExistingDirectory(this,
+//                                      tr("Choose Output Directory"));
 
-    ui->lineInput->setText(dir);
-}
+//    ui->lineInput->setText(dir);
+//}
 
 QThreadPool* MainWindow::getTaskPool()
 {
@@ -103,10 +147,22 @@ void MainWindow::on_btnStart_clicked()
     gLoopId++;
     TaskConvert::TaskConvertArgs args;
     args.loopid = gLoopId;
-    args.dir = ui->lineInput->text();
+    args.dir = dirModel_->fileInfo(ui->treeFolder->currentIndex()).absoluteFilePath();
     TaskConvert* task = new TaskConvert(args);
 
     task->setAutoDelete(true);
 
     getTaskPool()->start(task);
+}
+
+// TODO: move to header
+#define S1(x) #x
+#define S2(x) S1(x)
+#define LOCATION __FILE__ " : " S2(__LINE__)
+void MainWindow::on_treeFolder_clicked(const QModelIndex &index)
+{
+    QString sPath = dirModel_->fileInfo(index).absoluteFilePath();
+    qDebug() << sPath << LOCATION;
+    ui->treeFile->setRootIndex(fileModel_->setRootPath(sPath));
+    //fileModel_->setRootPath(sPath);
 }

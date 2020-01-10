@@ -2,13 +2,14 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-
+#include <QFileSystemModel>
 #include "../../lsMisc/stdQt/inisettings.h"
 
 namespace Ui {
 class MainWindow;
 }
 class QThreadPool;
+class QComboBox;
 
 class MainWindow : public QMainWindow
 {
@@ -20,17 +21,21 @@ public:
 
 
 private slots:
-    void on_btnBrowseInput_clicked();
-
-    void on_btnBrowseOutput_clicked();
 
     void on_btnStart_clicked();
+
+    void on_treeFolder_clicked(const QModelIndex &index);
 
 private:
     Ui::MainWindow *ui;
     AmbiesoftQt::IniSettings& settings_;
     QThreadPool* pTaskPool_ = nullptr;
     QThreadPool* getTaskPool();
+
+    QFileSystemModel* dirModel_ = nullptr;
+    QFileSystemModel* fileModel_ = nullptr;
+
+    QComboBox* cmbFind_ = nullptr;
 protected:
     void closeEvent(QCloseEvent *event);
 };
