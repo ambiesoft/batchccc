@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+#include "../../lsMisc/stdQt/inisettings.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -13,7 +15,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(AmbiesoftQt::IniSettings& settings);
     ~MainWindow();
 
 
@@ -26,9 +28,11 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-
+    AmbiesoftQt::IniSettings& settings_;
     QThreadPool* pTaskPool_ = nullptr;
     QThreadPool* getTaskPool();
+protected:
+    void closeEvent(QCloseEvent *event);
 };
 
 #endif // MAINWINDOW_H

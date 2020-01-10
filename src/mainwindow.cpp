@@ -3,24 +3,28 @@
 
 #include "global.h"
 #include "helper.h"
-
+#include "consts.h"
 #include "taskconvert.h"
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+using namespace AmbiesoftQt;
+using namespace Consts;
+
+MainWindow::MainWindow(IniSettings& settings) :
+    QMainWindow(nullptr),
+    ui(new Ui::MainWindow),
+    settings_(settings)
 {
     ui->setupUi(this);
 
 #ifndef NDEBUG
     QString str;
-    char* p = ConvertToUTF8_obsolete("euc-jp");
-    str = QString::fromUtf8(p);
-    ui->editLog->setPlainText(str);
-    delete[] p;
+//    char* p = ConvertToUTF8_obsolete("euc-jp");
+//    str = QString::fromUtf8(p);
+//    ui->editLog->setPlainText(str);
+//    delete[] p;
 
 
     const char src[]     = "\xC6\xFC\xCB\xDC"; // "日本"のeuc-jp表現
@@ -34,6 +38,30 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->lineInput->setText(QFileInfo("../src/testdata").absoluteFilePath());
 #endif
+
+
+    restoreGeometry(settings.value(KEY_GEOMETRY).toByteArray());
+
+    if(!restoreState(settings.value(KEY_WINDOWSTATE).toByteArray()))
+    {
+        // this must be called to make docking windows sizable properly
+        settings_.setValue(KEY_WINDOWSTATE, saveState());
+        restoreState(settings.value(KEY_WINDOWSTATE).toByteArray());
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    Q_UNUSED(event)
+
+    gPaused = false;
+    // WaitingCursor wc;
+
+
+    settings_.setValue(KEY_GEOMETRY, saveGeometry());
+    settings_.setValue(KEY_WINDOWSTATE, saveState());
+
+    settings_.sync();
+    __super::closeEvent(event);
 }
 
 MainWindow::~MainWindow()

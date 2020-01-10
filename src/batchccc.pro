@@ -43,6 +43,9 @@ win32-g++ {
 
 
 SOURCES += \
+        ../../lsMisc/stdQt/ambapp.cpp \
+        ../../lsMisc/stdQt/inisettings.cpp \
+        ../../lsMisc/stdQt/runguard.cpp \
         ../../lsMisc/stdQt/stdQt.cpp \
         global.cpp \
         helper.cpp \
@@ -52,7 +55,11 @@ SOURCES += \
 
 
 HEADERS += \
+        ../../lsMisc/stdQt/ambapp.h \
+        ../../lsMisc/stdQt/inisettings.h \
+        ../../lsMisc/stdQt/runguard.h \
         ../../lsMisc/stdQt/stdQt.h \
+        consts.h \
         global.h \
         helper.h \
         mainwindow.h \
